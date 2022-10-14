@@ -21,7 +21,6 @@ HOMEWORK_STATUSES = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
-BOT = telegram.Bot(token=TELEGRAM_TOKEN)
 logging.basicConfig(
     level=logging.INFO,
     filename='program.log',
@@ -60,7 +59,8 @@ def get_api_answer(current_timestamp):
     if response.status_code != 200:
         error_message = f'Не ожиданый ответа - {response.status_code}'
         logger.error(error_message)
-        send_message(BOT, error_message)
+        bot = telegram.Bot(token=TELEGRAM_TOKEN)
+        send_message(bot, error_message)
         raise HTTPCodeError(error_message)
     return response.json()
 
@@ -72,7 +72,8 @@ def check_response(response):
             'Ошибка ключа homeworks или response'
             'имеет неправильное значение.')
         logger.error(error_message)
-        send_message(BOT, error_message)
+        bot = telegram.Bot(token=TELEGRAM_TOKEN)
+        send_message(bot, error_message)
         raise EmptyDictionaryOrListError(error_message)
     if not response['homeworks']:
         return {}
@@ -115,6 +116,7 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     check_tokens()
     current_timestamp = int(time.time())
     status = {}
@@ -126,7 +128,7 @@ def main():
                 if homework.get('id') != status.get('id'):
                     message = parse_status(homework)
                     current_timestamp = int(time.time())
-                    send_message(BOT, message)
+                    send_message(bot, message)
                     logger.info(f'Сообщение <{message}> успешно отправлено')
             time.sleep(RETRY_TIME)
             status = homework
@@ -134,7 +136,7 @@ def main():
         except Exception as error:
             logger.error(f'сбой при отправке сообщения в Telegram {error}')
             message = f'Сбой в работе программы: {error}'
-            send_message(BOT, message)
+            send_message(bot, message)
             time.sleep(RETRY_TIME)
 
 
