@@ -37,17 +37,14 @@ logger.addHandler(handler)
 
 class HTTPCodeError(Exception):
     """Исключение при ошибке непредвиденного ответа от ресурса."""
-    pass
 
 
 class EmptyDictionaryOrListError(Exception):
     """Исключение при ошибке homeworks в ответе."""
-    pass
 
 
 class StatusHomeworkNameIsNone(Exception):
     """Исключение при ошибке ключей в ответе."""
-    pass
 
 
 def send_message(bot, message):
@@ -99,6 +96,7 @@ def parse_status(homework):
 
 
 def check_tokens():
+    """Прооверяем наличие переменных окружения"""
     status_bool_token = True
     fail = 'Ошибка переменных окружения'
     if not TELEGRAM_TOKEN:
