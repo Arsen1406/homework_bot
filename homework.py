@@ -80,17 +80,15 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Проверяем изменился ли статус."""
-    if not isinstance(homework, str):
-        status = homework.get('status')
-        homework_name = homework.get('homework_name')
-    else:
-        status = homework
-        homework_name = homework
+    """Анализируем статус если изменился."""
+    status = homework.get('status')
+    homework_name = homework.get('homework_name')
     if status is None:
-        raise StatusHomeworkNameIsNone('Ключ status не найден')
-    if status is None:
-        raise StatusHomeworkNameIsNone('Ключ homework_name не найден')
+        StatusHomeworkNameIsNone(
+            'Ошибка пустое значение status: ', status)
+    if homework_name is None:
+        StatusHomeworkNameIsNone(
+            'Ошибка пустое значение homework_name: ', homework_name)
     verdict = HOMEWORK_STATUSES[status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
