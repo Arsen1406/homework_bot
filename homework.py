@@ -1,8 +1,8 @@
 import os
-import requests
 import time
-import logging
+import requests
 import telegram
+import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
@@ -36,32 +36,27 @@ logger.addHandler(handler)
 
 
 class HTTPCodeError(Exception):
-    pass
-
-
-class ThereIsNoVariable(Exception):
+    """Исключение при ошибке непредвиденного ответа от ресурса."""
     pass
 
 
 class EmptyDictionaryOrListError(Exception):
-    pass
-
-
-class RequestExceptionError(Exception):
+    """Исключение при ошибке homeworks в ответе."""
     pass
 
 
 class StatusHomeworkNameIsNone(Exception):
+    """Исключение при ошибке ключей в ответе."""
     pass
 
 
 def send_message(bot, message):
-    """Отправляем сообщение об изменении статуса"""
+    """Отправляем сообщение об изменении статуса."""
     bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
 
 
 def get_api_answer(current_timestamp):
-    """Получаем дынные с API Яндекс Практикума"""
+    """Получаем дынные с API Яндекс Практикума."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -74,7 +69,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Проверяем полученные данные"""
+    """Проверяем полученные данные."""
     if response['homeworks'] is None:
         error_message = (
             'Ошибка ключа homeworks или response'
@@ -88,7 +83,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Проверяем изменился ли статус"""
+    """Проверяем изменился ли статус."""
     if not isinstance(homework, str):
         status = homework.get('status')
         homework_name = homework.get('homework_name')
