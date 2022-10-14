@@ -153,13 +153,15 @@ class TestHomework:
     def test_bot_init_not_global(self):
         import homework
 
-        assert not (hasattr(homework, 'bot') and isinstance(getattr(homework, 'bot'), telegram.Bot)), (
+        assert not (hasattr(homework, 'bot') and isinstance(
+            getattr(homework, 'bot'), telegram.Bot)), (
             'Убедитесь, что бот инициализирован только в main()'
         )
 
     def test_logger(self, monkeypatch, random_timestamp):
         def mock_telegram_bot(*args, **kwargs):
-            return MockTelegramBot(*args, random_timestamp=random_timestamp, **kwargs)
+            return MockTelegramBot(*args, random_timestamp=random_timestamp,
+                                   **kwargs)
 
         monkeypatch.setattr(telegram, "Bot", mock_telegram_bot)
 
@@ -171,7 +173,8 @@ class TestHomework:
 
     def test_send_message(self, monkeypatch, random_timestamp):
         def mock_telegram_bot(*args, **kwargs):
-            return MockTelegramBot(*args, random_timestamp=random_timestamp, **kwargs)
+            return MockTelegramBot(*args, random_timestamp=random_timestamp,
+                                   **kwargs)
 
         monkeypatch.setattr(telegram, "Bot", mock_telegram_bot)
 
@@ -425,7 +428,8 @@ class TestHomework:
                         'ответ при получении домашки без ключа `homework_status`'
                     )
 
-    def test_parse_status_no_homework_name_key(self, monkeypatch, random_timestamp,
+    def test_parse_status_no_homework_name_key(self, monkeypatch,
+                                               random_timestamp,
                                                current_timestamp, api_url):
         def mock_response_get(*args, **kwargs):
             response = MockResponseGET(
@@ -542,7 +546,8 @@ class TestHomework:
                 'ответ от API имеет некорректный тип.'
             )
 
-    def test_check_response_homeworks_not_in_list(self, monkeypatch, random_timestamp,
+    def test_check_response_homeworks_not_in_list(self, monkeypatch,
+                                                  random_timestamp,
                                                   current_timestamp, api_url):
         def mock_response_get(*args, **kwargs):
             response = MockResponseGET(

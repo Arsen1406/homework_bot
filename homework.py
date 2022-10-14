@@ -10,7 +10,7 @@ load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('TOKEN_PRACTICUM')
 TELEGRAM_TOKEN = os.getenv('TOKEN')
-TELEGRAM_CHAT_ID = 158736865
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
