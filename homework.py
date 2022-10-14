@@ -96,7 +96,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Прооверяем наличие переменных окружения"""
+    """Прооверяем наличие переменных окружения."""
     status_bool_token = True
     fail = 'Ошибка переменных окружения'
     if not TELEGRAM_TOKEN:
