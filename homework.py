@@ -1,8 +1,11 @@
 import os
 import time
+from typing import Any
+
 import requests
 import telegram
 import logging
+import excepts
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
@@ -21,6 +24,7 @@ HOMEWORK_STATUSES = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
+
 logging.basicConfig(
     level=logging.INFO,
     filename='program.log',
@@ -34,64 +38,65 @@ handler = RotatingFileHandler('my_logger.log', maxBytes=50000000,
 logger.addHandler(handler)
 
 
-class HTTPCodeError(Exception):
-    """Исключение при ошибке непредвиденного ответа от ресурса."""
-
-
-class EmptyDictionaryOrListError(Exception):
-    """Исключение при ошибке homeworks в ответе."""
-
-
-class StatusHomeworkNameIsNone(Exception):
-    """Исключение при ошибке ключей в ответе."""
-
-
-def send_message(bot, message):
+def send_message(bot, message) -> Any:
     """Отправляем сообщение об изменении статуса."""
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    logger.info('Запущен процесс отправки сообщения')
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        logger.info('Сообщение отправлено')
+    except excepts.EcxeptSendMessage('Не удалось отправить сообщение'):
+        logger.error('Не удалось отправить сообщение')
 
 
 def get_api_answer(current_timestamp):
     """Получаем дынные с API Яндекс Практикума."""
-    timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != 200:
-        error_message = f'Не ожиданый ответа - {response.status_code}'
-        logger.error(error_message)
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        send_message(bot, error_message)
-        raise HTTPCodeError(error_message)
-    return response.json()
+    request_params = {
+        'url': ENDPOINT,
+        'headers': {'Authorization': f'OAuth {PRACTICUM_TOKEN}'},
+        'params': {'from_date': current_timestamp or int(time.time())}
+    }
+    try:
+        response = requests.get(
+            **request_params
+        )
+        logger.info('Получаем информацию API')
+        if response.status_code != 200:
+            error_message = f'Запрос к ресурсу ' \
+                            f'{ENDPOINT}' \
+                            f'код ответа - {response.status_code}'
+            bot = telegram.Bot(token=TELEGRAM_TOKEN)
+            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=error_message)
+            raise excepts.WrongAPIResponseCodeError(error_message)
+        return response.json()
+    except excepts.EcxeptGetApi('Не удалось получить API данные'):
+        logger.error('Не удалось получить API данные')
 
 
 def check_response(response):
     """Проверяем полученные данные."""
-    if response['homeworks'] is None:
+    logger.info('Проверяем полученные данные.')
+    if not response or not isinstance(
+            response['homeworks'], list):
         error_message = (
             'Ошибка ключа homeworks или response'
             'имеет неправильное значение.')
         logger.error(error_message)
         bot = telegram.Bot(token=TELEGRAM_TOKEN)
         send_message(bot, error_message)
-        raise EmptyDictionaryOrListError(error_message)
-    if not response['homeworks']:
-        return {}
-    return response['homeworks'][0]
+        raise excepts.StatusHomeworkNameIsNone(error_message)
+    return response['homeworks']
 
 
 def parse_status(homework):
     """Проверяем изменился ли статус."""
-    if not isinstance(homework, str):
-        status = homework.get('status')
-        homework_name = homework.get('homework_name')
-    else:
-        status = homework
-        homework_name = homework
+    status = homework.get('status')
+    homework_name = homework.get('homework_name')
     if status is None:
-        raise StatusHomeworkNameIsNone('Ключ status не найден')
-    if status is None:
-        raise StatusHomeworkNameIsNone('Ключ homework_name не найден')
+        raise excepts.StatusHomeworkNameIsNone('Ключ status не найден')
+    if HOMEWORK_STATUSES[status] is None:
+        raise excepts.StatusHomeworkNameIsNone(
+            'Ключ status не найден в списке статусов'
+        )
     verdict = HOMEWORK_STATUSES[status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -116,27 +121,38 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    first_object = 0
     check_tokens()
+    if not check_tokens():
+        exit()
+        logger.critical('Не найден один из токенов')
+        raise excepts.TelegramError('Не найден один из токенов')
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    status = {}
+    status = []
+    current_report = {}
+    prev_report = {}
     while True:
         try:
             response = get_api_answer(current_timestamp)
             homework = check_response(response)
             if homework != status:
-                if homework.get('id') != status.get('id'):
+                homework = homework[first_object]
+                if homework.get('id') != status:
                     message = parse_status(homework)
                     current_timestamp = int(time.time())
                     send_message(bot, message)
-                    logger.info(f'Сообщение <{message}> успешно отправлено')
-            time.sleep(RETRY_TIME)
             status = homework
-
+        except excepts.NotForSendingError as error:
+            logging.error(error)
         except Exception as error:
-            logger.error(f'сбой при отправке сообщения в Telegram {error}')
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            current_report['output'] = message
+            logging.error(message, exc_info=True)
+            if current_report != prev_report:
+                send_message(bot, current_report)
+                prev_report = current_report.copy()
+        finally:
             time.sleep(RETRY_TIME)
 
 
