@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from typing import Any
 
@@ -40,12 +41,13 @@ logger.addHandler(handler)
 
 def send_message(bot, message) -> Any:
     """Отправляем сообщение об изменении статуса."""
-    logger.info('Запущен процесс отправки сообщения')
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logger.info('Сообщение отправлено')
     except excepts.EcxeptSendMessage('Не удалось отправить сообщение'):
         logger.error('Не удалось отправить сообщение')
+    else:
+        logger.info('Запущен процесс отправки сообщения')
+        logger.info('Сообщение отправлено')
 
 
 def get_api_answer(current_timestamp):
@@ -68,34 +70,37 @@ def get_api_answer(current_timestamp):
             bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=error_message)
             raise excepts.WrongAPIResponseCodeError(error_message)
         return response.json()
-    except excepts.EcxeptGetApi('Не удалось получить API данные'):
-        logger.error('Не удалось получить API данные')
+    except Exception as error:
+        code_api_msg = f'Код ответа API (ValueError): {error}'
+        raise ValueError(code_api_msg)
 
 
 def check_response(response):
     """Проверяем полученные данные."""
     logger.info('Проверяем полученные данные.')
-    if not response or not isinstance(
-            response['homeworks'], list):
-        error_message = (
-            'Ошибка ключа homeworks или response'
-            'имеет неправильное значение.')
-        logger.error(error_message)
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        send_message(bot, error_message)
+    if not response or not isinstance(response, dict):
+        error_message = 'response не является словарем.'
+        raise TypeError(error_message)
+    if 'homeworks' not in response:
+        error_message = 'В response нет ключа homeworks.'
         raise excepts.StatusHomeworkNameIsNone(error_message)
+    if not isinstance(response['homeworks'], list):
+        error_message = 'homeworks не является списком.'
+        raise TypeError(error_message)
     return response['homeworks']
 
 
 def parse_status(homework):
     """Проверяем изменился ли статус."""
     status = homework.get('status')
+    if 'homework_name' not in homework:
+        raise KeyError(
+            f'Ключ homework_name не найден в homework'
+        )
     homework_name = homework.get('homework_name')
-    if status is None:
-        raise excepts.StatusHomeworkNameIsNone('Ключ status не найден')
-    if HOMEWORK_STATUSES[status] is None:
+    if status not in HOMEWORK_STATUSES:
         raise excepts.StatusHomeworkNameIsNone(
-            'Ключ status не найден в списке статусов'
+            f'Ключ {status} не найден в списке статусов'
         )
     verdict = HOMEWORK_STATUSES[status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -125,8 +130,10 @@ def main():
     check_tokens()
     if not check_tokens():
         exit()
-        logger.critical('Не найден один из токенов')
-        raise excepts.TelegramError('Не найден один из токенов')
+        message = 'Не найден один из токенов ' \
+                  'PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID'
+        logger.critical(message)
+        sys.exit(message)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     status = []
@@ -142,7 +149,7 @@ def main():
                     message = parse_status(homework)
                     current_timestamp = int(time.time())
                     send_message(bot, message)
-            status = homework
+                status = homework
         except excepts.NotForSendingError as error:
             logging.error(error)
         except Exception as error:
