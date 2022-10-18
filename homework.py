@@ -94,9 +94,7 @@ def parse_status(homework):
     """Проверяем изменился ли статус."""
     status = homework.get('status')
     if 'homework_name' not in homework:
-        raise KeyError(
-            f'Ключ homework_name не найден в homework'
-        )
+        raise KeyError('Ключ homework_name не найден в homework')
     homework_name = homework.get('homework_name')
     if status not in HOMEWORK_STATUSES:
         raise excepts.StatusHomeworkNameIsNone(
