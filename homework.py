@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from typing import Any
+from http import HTTPStatus
 
 import requests
 import telegram
@@ -41,16 +42,16 @@ logger.addHandler(handler)
 
 def send_message(bot, message) -> Any:
     """Отправляем сообщение об изменении статуса."""
+    logger.info('Запущен процесс отправки сообщения')
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except excepts.EcxeptSendMessage('Не удалось отправить сообщение'):
         logger.error('Не удалось отправить сообщение')
     else:
-        logger.info('Запущен процесс отправки сообщения')
         logger.info('Сообщение отправлено')
 
 
-def get_api_answer(current_timestamp):
+def get_api_answer(current_timestamp) -> dict:
     """Получаем дынные с API Яндекс Практикума."""
     request_params = {
         'url': ENDPOINT,
@@ -62,7 +63,7 @@ def get_api_answer(current_timestamp):
             **request_params
         )
         logger.info('Получаем информацию API')
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             error_message = f'Запрос к ресурсу ' \
                             f'{ENDPOINT}' \
                             f'код ответа - {response.status_code}'
