@@ -13,9 +13,6 @@
 Клонируйте репозиторий на своё устройство:
 - git clone <ссылка на проект>
 
-Перейдите в директорию:
-- cd api_final_yatube
-
 Разверните виртуальное окружение:
 - python -m venv env или source env/bin/activate 
 
