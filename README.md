@@ -25,8 +25,8 @@
 Выполнить миграции:
 - python3 manage.py migrate
 
-Запустить проект:
-- python manage.py runserver
+Запустить файл:
+- homework.py
 
 # Автор
 - Григорян Арсен
